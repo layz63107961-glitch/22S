@@ -1,0 +1,923 @@
+-- ╔══════════════════════════════════════════╗
+-- ║        22S DUELS - CHEAT MENU v2.0       ║
+-- ║           Créé avec ❄️ flocons           ║
+-- ╚══════════════════════════════════════════╝
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+-- ══════════════════════════════════════
+--           CONFIGURATION
+-- ══════════════════════════════════════
+local Config = {
+    SpeedBoost = false,
+    BoostSpeed = 30,
+    GalaxyMode = false,
+    GravityPercent = 70,
+    AntiRagdoll = false,
+    HopPower = 35,
+    SpinBot = false,
+    SpinSpeed = 30,
+    SpamBot = false,
+    AutoSteal = false,
+    BatAimbot = false,
+    GalaxySkyBright = false,
+    SpeedWhileStealing = false,
+    StealSpeed = 29,
+    Unwalk = false,
+    OptimizerXRay = false,
+    AutoLeft = false,
+    AutoRight = false,
+}
+
+-- ══════════════════════════════════════
+--           VARIABLES INTERNES
+-- ══════════════════════════════════════
+local originalWalkSpeed = 16
+local originalJumpPower = 50
+local originalGravity = workspace.Gravity
+local connections = {}
+local snowflakes = {}
+local isGuiOpen = true
+
+-- ══════════════════════════════════════
+--           CRÉATION DE LA GUI
+-- ══════════════════════════════════════
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "DuelsCheatMenu"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = LocalPlayer.PlayerGui
+
+-- ══════════════════════════════════════
+--        FOND PRINCIPAL (FLOCONS)
+-- ══════════════════════════════════════
+local SnowCanvas = Instance.new("Frame")
+SnowCanvas.Name = "SnowCanvas"
+SnowCanvas.Size = UDim2.new(1, 0, 1, 0)
+SnowCanvas.Position = UDim2.new(0, 0, 0, 0)
+SnowCanvas.BackgroundTransparency = 1
+SnowCanvas.ZIndex = 1
+SnowCanvas.Parent = ScreenGui
+
+-- Fonction pour créer un flocon de neige
+local function CreateSnowflake()
+    local snow = Instance.new("TextLabel")
+    snow.Size = UDim2.new(0, math.random(8, 20), 0, math.random(8, 20))
+    snow.Position = UDim2.new(math.random(0, 100) / 100, 0, -0.05, 0)
+    snow.BackgroundTransparency = 1
+    snow.Text = math.random(1, 3) == 1 and "❄" or (math.random(1, 2) == 1 and "✦" or "·")
+    snow.TextColor3 = Color3.fromRGB(
+        math.random(200, 255),
+        math.random(220, 255),
+        255
+    )
+    snow.TextTransparency = math.random(0, 50) / 100
+    snow.TextScaled = true
+    snow.Font = Enum.Font.GothamBold
+    snow.ZIndex = 2
+    snow.Parent = SnowCanvas
+
+    local speed = math.random(3, 8)
+    local drift = math.random(-30, 30) / 10
+    local startX = snow.Position.X.Scale
+    local startY = -0.05
+    local elapsed = 0
+
+    table.insert(snowflakes, {
+        label = snow,
+        speed = speed,
+        drift = drift,
+        startX = startX,
+        y = startY,
+        elapsed = elapsed,
+    })
+
+    return snow
+end
+
+-- Créer les flocons initiaux
+for i = 1, 60 do
+    local sf = CreateSnowflake()
+    -- Disperser les flocons à des positions Y aléatoires au départ
+    local randomY = math.random(0, 100) / 100
+    snowflakes[#snowflakes].y = randomY
+    sf.Position = UDim2.new(snowflakes[#snowflakes].startX, 0, randomY, 0)
+end
+
+-- ══════════════════════════════════════
+--        FENÊTRE PRINCIPALE
+-- ══════════════════════════════════════
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 420, 0, 560)
+MainFrame.Position = UDim2.new(0.5, -210, 0.5, -280)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 12, 20)
+MainFrame.BorderSizePixel = 0
+MainFrame.ZIndex = 10
+MainFrame.Parent = ScreenGui
+
+-- Coins arrondis de la fenêtre
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.Parent = MainFrame
+
+-- Bordure brillante bleue
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(0, 120, 255)
+MainStroke.Thickness = 1.5
+MainStroke.Transparency = 0.3
+MainStroke.Parent = MainFrame
+
+-- Gradient de fond
+local BgGradient = Instance.new("UIGradient")
+BgGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(12, 16, 30)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 10, 20)),
+})
+BgGradient.Rotation = 135
+BgGradient.Parent = MainFrame
+
+-- ══════════════════════════════════════
+--              HEADER
+-- ══════════════════════════════════════
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 55)
+Header.BackgroundColor3 = Color3.fromRGB(15, 20, 40)
+Header.BorderSizePixel = 0
+Header.ZIndex = 11
+Header.Parent = MainFrame
+
+local HeaderCorner = Instance.new("UICorner")
+HeaderCorner.CornerRadius = UDim.new(0, 12)
+HeaderCorner.Parent = Header
+
+-- Fix coin bas header
+local HeaderFix = Instance.new("Frame")
+HeaderFix.Size = UDim2.new(1, 0, 0, 15)
+HeaderFix.Position = UDim2.new(0, 0, 1, -15)
+HeaderFix.BackgroundColor3 = Color3.fromRGB(15, 20, 40)
+HeaderFix.BorderSizePixel = 0
+HeaderFix.ZIndex = 11
+HeaderFix.Parent = Header
+
+-- Titre principal
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Size = UDim2.new(1, -40, 0, 28)
+TitleLabel.Position = UDim2.new(0, 0, 0, 6)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "22S DUELS"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextSize = 20
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.ZIndex = 12
+TitleLabel.Parent = Header
+
+-- Sous-titre discord
+local SubTitle = Instance.new("TextLabel")
+SubTitle.Size = UDim2.new(1, -40, 0, 18)
+SubTitle.Position = UDim2.new(0, 0, 0, 32)
+SubTitle.BackgroundTransparency = 1
+SubTitle.Text = "discord.gg/22s"
+SubTitle.TextColor3 = Color3.fromRGB(100, 150, 255)
+SubTitle.TextSize = 12
+SubTitle.Font = Enum.Font.Gotham
+SubTitle.ZIndex = 12
+SubTitle.Parent = Header
+
+-- Bouton fermer X
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 28, 0, 28)
+CloseBtn.Position = UDim2.new(1, -35, 0, 12)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextSize = 14
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.BorderSizePixel = 0
+CloseBtn.ZIndex = 13
+CloseBtn.Parent = Header
+
+local CloseBtnCorner = Instance.new("UICorner")
+CloseBtnCorner.CornerRadius = UDim.new(0, 6)
+CloseBtnCorner.Parent = CloseBtn
+
+-- ══════════════════════════════════════
+--         SCROLL CONTAINER
+-- ══════════════════════════════════════
+local ScrollFrame = Instance.new("ScrollingFrame")
+ScrollFrame.Size = UDim2.new(1, -10, 1, -110)
+ScrollFrame.Position = UDim2.new(0, 5, 0, 60)
+ScrollFrame.BackgroundTransparency = 1
+ScrollFrame.BorderSizePixel = 0
+ScrollFrame.ScrollBarThickness = 3
+ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 120, 255)
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ScrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+ScrollFrame.ZIndex = 11
+ScrollFrame.Parent = MainFrame
+
+local GridLayout = Instance.new("UIGridLayout")
+GridLayout.CellSize = UDim2.new(0.48, -5, 0, 90)
+GridLayout.CellPadding = UDim2.new(0.02, 2, 0, 8)
+GridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+GridLayout.Parent = ScrollFrame
+
+local ScrollPadding = Instance.new("UIPadding")
+ScrollPadding.PaddingLeft = UDim.new(0, 5)
+ScrollPadding.PaddingRight = UDim.new(0, 5)
+ScrollPadding.PaddingTop = UDim.new(0, 8)
+ScrollPadding.Parent = ScrollFrame
+
+-- ══════════════════════════════════════
+--         BOUTON SAVE CONFIG
+-- ══════════════════════════════════════
+local SaveBtn = Instance.new("TextButton")
+SaveBtn.Size = UDim2.new(1, -20, 0, 42)
+SaveBtn.Position = UDim2.new(0, 10, 1, -52)
+SaveBtn.BackgroundColor3 = Color3.fromRGB(0, 110, 255)
+SaveBtn.Text = "SAVE CONFIG"
+SaveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SaveBtn.TextSize = 14
+SaveBtn.Font = Enum.Font.GothamBold
+SaveBtn.BorderSizePixel = 0
+SaveBtn.ZIndex = 12
+SaveBtn.Parent = MainFrame
+
+local SaveCorner = Instance.new("UICorner")
+SaveCorner.CornerRadius = UDim.new(0, 8)
+SaveCorner.Parent = SaveBtn
+
+local SaveGradient = Instance.new("UIGradient")
+SaveGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 140, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 80, 200)),
+})
+SaveGradient.Rotation = 90
+SaveGradient.Parent = SaveBtn
+
+-- ══════════════════════════════════════
+--         FONCTIONS UTILITAIRES
+-- ══════════════════════════════════════
+
+-- Créer un toggle item avec label + slider optionnel
+local function CreateToggleItem(name, configKey, order, hasSlider, sliderKey, sliderMin, sliderMax, keybind)
+    local Card = Instance.new("Frame")
+    Card.BackgroundColor3 = Color3.fromRGB(18, 24, 42)
+    Card.BorderSizePixel = 0
+    Card.ZIndex = 12
+    Card.LayoutOrder = order
+    Card.Parent = ScrollFrame
+
+    local CardCorner = Instance.new("UICorner")
+    CardCorner.CornerRadius = UDim.new(0, 8)
+    CardCorner.Parent = Card
+
+    local CardStroke = Instance.new("UIStroke")
+    CardStroke.Color = Color3.fromRGB(30, 50, 90)
+    CardStroke.Thickness = 1
+    CardStroke.Parent = Card
+
+    -- Keybind badge
+    if keybind then
+        local KeyBadge = Instance.new("Frame")
+        KeyBadge.Size = UDim2.new(0, 20, 0, 18)
+        KeyBadge.Position = UDim2.new(0, 6, 0, 6)
+        KeyBadge.BackgroundColor3 = Color3.fromRGB(0, 100, 220)
+        KeyBadge.BorderSizePixel = 0
+        KeyBadge.ZIndex = 14
+        KeyBadge.Parent = Card
+
+        local KeyCorner = Instance.new("UICorner")
+        KeyCorner.CornerRadius = UDim.new(0, 4)
+        KeyCorner.Parent = KeyBadge
+
+        local KeyLabel = Instance.new("TextLabel")
+        KeyLabel.Size = UDim2.new(1, 0, 1, 0)
+        KeyLabel.BackgroundTransparency = 1
+        KeyLabel.Text = keybind
+        KeyLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        KeyLabel.TextSize = 9
+        KeyLabel.Font = Enum.Font.GothamBold
+        KeyLabel.ZIndex = 15
+        KeyLabel.Parent = KeyBadge
+    end
+
+    -- Nom du toggle
+    local NameLabel = Instance.new("TextLabel")
+    NameLabel.Size = UDim2.new(0.7, 0, 0, 22)
+    NameLabel.Position = UDim2.new(0, keybind and 30 or 8, 0, 8)
+    NameLabel.BackgroundTransparency = 1
+    NameLabel.Text = name
+    NameLabel.TextColor3 = Color3.fromRGB(220, 225, 255)
+    NameLabel.TextSize = 11
+    NameLabel.Font = Enum.Font.GothamSemibold
+    NameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    NameLabel.ZIndex = 13
+    NameLabel.Parent = Card
+
+    -- Toggle switch
+    local ToggleBase = Instance.new("Frame")
+    ToggleBase.Size = UDim2.new(0, 38, 0, 20)
+    ToggleBase.Position = UDim2.new(1, -46, 0, 8)
+    ToggleBase.BackgroundColor3 = Config[configKey] and Color3.fromRGB(0, 120, 255) or Color3.fromRGB(40, 45, 65)
+    ToggleBase.BorderSizePixel = 0
+    ToggleBase.ZIndex = 13
+    ToggleBase.Parent = Card
+
+    local ToggleBaseCorner = Instance.new("UICorner")
+    ToggleBaseCorner.CornerRadius = UDim.new(1, 0)
+    ToggleBaseCorner.Parent = ToggleBase
+
+    local ToggleKnob = Instance.new("Frame")
+    ToggleKnob.Size = UDim2.new(0, 16, 0, 16)
+    ToggleKnob.Position = Config[configKey] and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+    ToggleKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleKnob.BorderSizePixel = 0
+    ToggleKnob.ZIndex = 14
+    ToggleKnob.Parent = ToggleBase
+
+    local KnobCorner = Instance.new("UICorner")
+    KnobCorner.CornerRadius = UDim.new(1, 0)
+    KnobCorner.Parent = ToggleKnob
+
+    -- Slider si nécessaire
+    local SliderLabel, SliderBar, SliderFill
+    if hasSlider and sliderKey then
+        local SliderRow = Instance.new("Frame")
+        SliderRow.Size = UDim2.new(1, -16, 0, 28)
+        SliderRow.Position = UDim2.new(0, 8, 0, 34)
+        SliderRow.BackgroundTransparency = 1
+        SliderRow.ZIndex = 13
+        SliderRow.Parent = Card
+
+        local SliderNameLabel = Instance.new("TextLabel")
+        SliderNameLabel.Size = UDim2.new(0.6, 0, 0, 14)
+        SliderNameLabel.BackgroundTransparency = 1
+        SliderNameLabel.Text = sliderKey == "BoostSpeed" and "Boost Speed" or 
+                               sliderKey == "GravityPercent" and "Gravity %" or
+                               sliderKey == "HopPower" and "Hop Power" or
+                               sliderKey == "SpinSpeed" and "Spin Speed" or
+                               sliderKey == "StealSpeed" and "Steal Speed" or sliderKey
+        SliderNameLabel.TextColor3 = Color3.fromRGB(130, 160, 220)
+        SliderNameLabel.TextSize = 10
+        SliderNameLabel.Font = Enum.Font.Gotham
+        SliderNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+        SliderNameLabel.ZIndex = 14
+        SliderNameLabel.Parent = SliderRow
+
+        SliderLabel = Instance.new("TextLabel")
+        SliderLabel.Size = UDim2.new(0.3, 0, 0, 14)
+        SliderLabel.Position = UDim2.new(0.7, 0, 0, 0)
+        SliderLabel.BackgroundTransparency = 1
+        SliderLabel.Text = tostring(Config[sliderKey])
+        SliderLabel.TextColor3 = Color3.fromRGB(0, 180, 255)
+        SliderLabel.TextSize = 11
+        SliderLabel.Font = Enum.Font.GothamBold
+        SliderLabel.TextXAlignment = Enum.TextXAlignment.Right
+        SliderLabel.ZIndex = 14
+        SliderLabel.Parent = SliderRow
+
+        SliderBar = Instance.new("Frame")
+        SliderBar.Size = UDim2.new(1, 0, 0, 5)
+        SliderBar.Position = UDim2.new(0, 0, 0, 18)
+        SliderBar.BackgroundColor3 = Color3.fromRGB(30, 40, 70)
+        SliderBar.BorderSizePixel = 0
+        SliderBar.ZIndex = 14
+        SliderBar.Parent = SliderRow
+
+        local SliderBarCorner = Instance.new("UICorner")
+        SliderBarCorner.CornerRadius = UDim.new(1, 0)
+        SliderBarCorner.Parent = SliderBar
+
+        SliderFill = Instance.new("Frame")
+        local fillPct = (Config[sliderKey] - sliderMin) / (sliderMax - sliderMin)
+        SliderFill.Size = UDim2.new(fillPct, 0, 1, 0)
+        SliderFill.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+        SliderFill.BorderSizePixel = 0
+        SliderFill.ZIndex = 15
+        SliderFill.Parent = SliderBar
+
+        local SliderFillCorner = Instance.new("UICorner")
+        SliderFillCorner.CornerRadius = UDim.new(1, 0)
+        SliderFillCorner.Parent = SliderFill
+
+        -- Drag slider
+        local isDragging = false
+        SliderBar.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or
+               input.UserInputType == Enum.UserInputType.Touch then
+                isDragging = true
+            end
+        end)
+
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or
+               input.UserInputType == Enum.UserInputType.Touch then
+                isDragging = false
+            end
+        end)
+
+        UserInputService.InputChanged:Connect(function(input)
+            if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or
+               input.UserInputType == Enum.UserInputType.Touch) then
+                local barPos = SliderBar.AbsolutePosition
+                local barSize = SliderBar.AbsoluteSize
+                local relX = math.clamp((input.Position.X - barPos.X) / barSize.X, 0, 1)
+                local value = math.floor(sliderMin + relX * (sliderMax - sliderMin))
+                Config[sliderKey] = value
+                SliderFill.Size = UDim2.new(relX, 0, 1, 0)
+                SliderLabel.Text = tostring(value)
+            end
+        end)
+    end
+
+    -- Toggle logic
+    local function UpdateToggle()
+        local isOn = Config[configKey]
+        TweenService:Create(ToggleBase, TweenInfo.new(0.2), {
+            BackgroundColor3 = isOn and Color3.fromRGB(0, 120, 255) or Color3.fromRGB(40, 45, 65)
+        }):Play()
+        TweenService:Create(ToggleKnob, TweenInfo.new(0.2), {
+            Position = isOn and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+        }):Play()
+        if isOn then
+            TweenService:Create(CardStroke, TweenInfo.new(0.2), {
+                Color = Color3.fromRGB(0, 100, 220)
+            }):Play()
+        else
+            TweenService:Create(CardStroke, TweenInfo.new(0.2), {
+                Color = Color3.fromRGB(30, 50, 90)
+            }):Play()
+        end
+    end
+
+    ToggleBase.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or
+           input.UserInputType == Enum.UserInputType.Touch then
+            Config[configKey] = not Config[configKey]
+            UpdateToggle()
+        end
+    end)
+
+    return Card
+end
+
+-- ══════════════════════════════════════
+--          CRÉATION DES ITEMS
+-- ══════════════════════════════════════
+CreateToggleItem("Speed Boost",         "SpeedBoost",          1,  true, "BoostSpeed",      1,  100, "V")
+CreateToggleItem("Galaxy Mode",         "GalaxyMode",          2,  true, "GravityPercent",  1,  200, "M")
+CreateToggleItem("Anti Ragdoll",        "AntiRagdoll",         3,  true, "HopPower",        1,  200, nil)
+CreateToggleItem("Spin Bot",            "SpinBot",             4,  true, "SpinSpeed",       1,  100, "N")
+CreateToggleItem("Speed While Stealing","SpeedWhileStealing",  5,  true, "StealSpeed",      1,  100, nil)
+CreateToggleItem("Spam Bot",            "SpamBot",             6,  false, nil,              nil, nil, nil)
+CreateToggleItem("Unwalk",              "Unwalk",              7,  false, nil,              nil, nil, nil)
+CreateToggleItem("Auto Steal",          "AutoSteal",           8,  false, nil,              nil, nil, nil)
+CreateToggleItem("Optimizer + XRay",    "OptimizerXRay",       9,  false, nil,              nil, nil, nil)
+CreateToggleItem("Bat Aimbot",          "BatAimbot",           10, false, nil,              nil, nil, "X")
+CreateToggleItem("Auto Left",           "AutoLeft",            11, false, nil,              nil, nil, "Z")
+CreateToggleItem("Galaxy Sky Bright",   "GalaxySkyBright",     12, false, nil,              nil, nil, nil)
+CreateToggleItem("Auto Right",          "AutoRight",           13, false, nil,              nil, nil, "C")
+
+-- ══════════════════════════════════════
+--         LOGIQUE DES CHEATS
+-- ══════════════════════════════════════
+
+local function GetCharacter()
+    return LocalPlayer.Character
+end
+
+local function GetHumanoid()
+    local char = GetCharacter()
+    return char and char:FindFirstChildOfClass("Humanoid")
+end
+
+local function GetRootPart()
+    local char = GetCharacter()
+    return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+-- Speed Boost
+local SpeedBoostConn
+local function UpdateSpeedBoost()
+    if SpeedBoostConn then SpeedBoostConn:Disconnect() end
+    if Config.SpeedBoost then
+        SpeedBoostConn = RunService.Heartbeat:Connect(function()
+            local hum = GetHumanoid()
+            if hum then
+                hum.WalkSpeed = Config.BoostSpeed
+            end
+        end)
+    else
+        local hum = GetHumanoid()
+        if hum then hum.WalkSpeed = originalWalkSpeed end
+    end
+end
+
+-- Anti Ragdoll
+local AntiRagdollConn
+local function UpdateAntiRagdoll()
+    if AntiRagdollConn then AntiRagdollConn:Disconnect() end
+    if Config.AntiRagdoll then
+        AntiRagdollConn = RunService.Heartbeat:Connect(function()
+            local char = GetCharacter()
+            if char then
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
+                end
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+                    hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+                end
+            end
+        end)
+    end
+end
+
+-- Galaxy Mode (Gravity)
+local function UpdateGalaxyMode()
+    if Config.GalaxyMode then
+        workspace.Gravity = originalGravity * (Config.GravityPercent / 100)
+        local hum = GetHumanoid()
+        if hum then hum.JumpPower = Config.HopPower end
+    else
+        workspace.Gravity = originalGravity
+        local hum = GetHumanoid()
+        if hum then hum.JumpPower = originalJumpPower end
+    end
+end
+
+-- Spin Bot
+local SpinBotConn
+local function UpdateSpinBot()
+    if SpinBotConn then SpinBotConn:Disconnect() end
+    if Config.SpinBot then
+        SpinBotConn = RunService.Heartbeat:Connect(function()
+            local root = GetRootPart()
+            if root then
+                root.CFrame = root.CFrame * CFrame.fromEulerAnglesXYZ(0, math.rad(Config.SpinSpeed), 0)
+            end
+        end)
+    end
+end
+
+-- Unwalk
+local UnwalkConn
+local function UpdateUnwalk()
+    if UnwalkConn then UnwalkConn:Disconnect() end
+    if Config.Unwalk then
+        UnwalkConn = RunService.Heartbeat:Connect(function()
+            local hum = GetHumanoid()
+            if hum then
+                hum.WalkSpeed = 0
+            end
+        end)
+    else
+        if not Config.SpeedBoost then
+            local hum = GetHumanoid()
+            if hum then hum.WalkSpeed = originalWalkSpeed end
+        end
+    end
+end
+
+-- Auto Steal (exemple basique - cherche le ballon)
+local AutoStealConn
+local function UpdateAutoSteal()
+    if AutoStealConn then AutoStealConn:Disconnect() end
+    if Config.AutoSteal then
+        AutoStealConn = RunService.Heartbeat:Connect(function()
+            local root = GetRootPart()
+            if not root then return end
+            -- Cherche un objet nommé "Ball" ou similaire dans le workspace
+            for _, obj in pairs(workspace:GetDescendants()) do
+                if obj.Name:lower():find("ball") and obj:IsA("BasePart") then
+                    local dist = (obj.Position - root.Position).Magnitude
+                    if dist < 20 then
+                        -- Téléporte vers la balle
+                        local dir = (obj.Position - root.Position).Unit
+                        root.CFrame = CFrame.new(obj.Position - dir * 3, obj.Position)
+                    end
+                end
+            end
+        end)
+    end
+end
+
+-- Bat Aimbot (lock sur le joueur le plus proche)
+local BatAimbotConn
+local function UpdateBatAimbot()
+    if BatAimbotConn then BatAimbotConn:Disconnect() end
+    if Config.BatAimbot then
+        BatAimbotConn = RunService.Heartbeat:Connect(function()
+            local root = GetRootPart()
+            if not root then return end
+            local closestPlayer, closestDist = nil, math.huge
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer and plr.Character then
+                    local otherRoot = plr.Character:FindFirstChild("HumanoidRootPart")
+                    if otherRoot then
+                        local dist = (otherRoot.Position - root.Position).Magnitude
+                        if dist < closestDist then
+                            closestDist = dist
+                            closestPlayer = otherRoot
+                        end
+                    end
+                end
+            end
+            if closestPlayer and closestDist < 50 then
+                root.CFrame = CFrame.new(root.Position, closestPlayer.Position)
+            end
+        end)
+    end
+end
+
+-- Galaxy Sky Bright
+local function UpdateGalaxySkyBright()
+    local lighting = game:GetService("Lighting")
+    if Config.GalaxySkyBright then
+        lighting.Brightness = 5
+        lighting.Ambient = Color3.fromRGB(50, 80, 150)
+        lighting.OutdoorAmbient = Color3.fromRGB(30, 50, 120)
+    else
+        lighting.Brightness = 1
+        lighting.Ambient = Color3.fromRGB(127, 127, 127)
+        lighting.OutdoorAmbient = Color3.fromRGB(127, 127, 127)
+    end
+end
+
+-- Speed While Stealing
+local SpeedStealConn
+local function UpdateSpeedWhileStealing()
+    if SpeedStealConn then SpeedStealConn:Disconnect() end
+    if Config.SpeedWhileStealing then
+        SpeedStealConn = RunService.Heartbeat:Connect(function()
+            local hum = GetHumanoid()
+            if hum and not Config.SpeedBoost then
+                -- Active la vitesse si proche d'une balle
+                local root = GetRootPart()
+                if root then
+                    for _, obj in pairs(workspace:GetDescendants()) do
+                        if obj.Name:lower():find("ball") and obj:IsA("BasePart") then
+                            local dist = (obj.Position - root.Position).Magnitude
+                            if dist < 15 then
+                                hum.WalkSpeed = Config.StealSpeed
+                                return
+                            end
+                        end
+                    end
+                    hum.WalkSpeed = originalWalkSpeed
+                end
+            end
+        end)
+    end
+end
+
+-- Spam Bot (spam une action)
+local SpamBotConn
+local function UpdateSpamBot()
+    if SpamBotConn then SpamBotConn:Disconnect() end
+    if Config.SpamBot then
+        local t = 0
+        SpamBotConn = RunService.Heartbeat:Connect(function(dt)
+            t = t + dt
+            if t >= 0.05 then
+                t = 0
+                -- Spam le saut par exemple
+                local hum = GetHumanoid()
+                if hum then
+                    hum.Jump = true
+                end
+            end
+        end)
+    end
+end
+
+-- Auto Right / Left (mouvement automatique)
+local AutoMoveConn
+local function UpdateAutoMove()
+    if AutoMoveConn then AutoMoveConn:Disconnect() end
+    if Config.AutoRight or Config.AutoLeft then
+        AutoMoveConn = RunService.Heartbeat:Connect(function()
+            local root = GetRootPart()
+            if root then
+                if Config.AutoRight then
+                    root.Velocity = root.CFrame.RightVector * 20
+                elseif Config.AutoLeft then
+                    root.Velocity = root.CFrame.RightVector * -20
+                end
+            end
+        end)
+    end
+end
+
+-- Optimizer + XRay
+local function UpdateOptimizerXRay()
+    if Config.OptimizerXRay then
+        -- Xray: rend les parts semi-transparentes
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("BasePart") and not obj:IsDescendantOf(LocalPlayer.Character or game.Players.LocalPlayer.Character) then
+                if not obj:FindFirstChildOfClass("SelectionBox") then
+                    obj.LocalTransparencyModifier = 0.7
+                end
+            end
+        end
+    else
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("BasePart") then
+                obj.LocalTransparencyModifier = 0
+            end
+        end
+    end
+end
+
+-- ══════════════════════════════════════
+--         SAVE CONFIG
+-- ══════════════════════════════════════
+SaveBtn.MouseButton1Click:Connect(function()
+    -- Visual feedback
+    TweenService:Create(SaveBtn, TweenInfo.new(0.1), {
+        BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+    }):Play()
+    SaveBtn.Text = "✓ CONFIG SAVED!"
+    task.wait(1.5)
+    TweenService:Create(SaveBtn, TweenInfo.new(0.2), {
+        BackgroundColor3 = Color3.fromRGB(0, 110, 255)
+    }):Play()
+    SaveBtn.Text = "SAVE CONFIG"
+
+    -- Sauvegarder avec writefile si disponible
+    local success, err = pcall(function()
+        if writefile then
+            local data = ""
+            for k, v in pairs(Config) do
+                data = data .. k .. "=" .. tostring(v) .. "\n"
+            end
+            writefile("22s_config.txt", data)
+        end
+    end)
+    if success then
+        print("[22S] Config sauvegardée dans 22s_config.txt")
+    else
+        print("[22S] Config en mémoire seulement (writefile non disponible)")
+    end
+end)
+
+-- ══════════════════════════════════════
+--         CLOSE BUTTON
+-- ══════════════════════════════════════
+CloseBtn.MouseButton1Click:Connect(function()
+    if isGuiOpen then
+        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+            Size = UDim2.new(0, 0, 0, 0),
+            Position = UDim2.new(0.5, 0, 0.5, 0)
+        }):Play()
+        isGuiOpen = false
+        task.wait(0.3)
+        MainFrame.Visible = false
+    end
+end)
+
+-- Raccourci clavier pour rouvrir (INSERT)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.Insert then
+        if not isGuiOpen then
+            MainFrame.Visible = true
+            MainFrame.Size = UDim2.new(0, 0, 0, 0)
+            MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+            TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                Size = UDim2.new(0, 420, 0, 560),
+                Position = UDim2.new(0.5, -210, 0.5, -280)
+            }):Play()
+            isGuiOpen = true
+        end
+    end
+end)
+
+-- ══════════════════════════════════════
+--         DRAG LA FENÊTRE
+-- ══════════════════════════════════════
+local dragging = false
+local dragStart, startPos
+
+Header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or
+       input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or
+       input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or
+       input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+-- ══════════════════════════════════════
+--         ANIMATION D'OUVERTURE
+-- ══════════════════════════════════════
+MainFrame.Size = UDim2.new(0, 0, 0, 0)
+MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+task.wait(0.1)
+TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    Size = UDim2.new(0, 420, 0, 560),
+    Position = UDim2.new(0.5, -210, 0.5, -280)
+}):Play()
+
+-- ══════════════════════════════════════
+--     LOOP PRINCIPAL (FLOCONS + CHEATS)
+-- ══════════════════════════════════════
+local lastSnowSpawn = 0
+local snowSpawnInterval = 0.5
+
+RunService.Heartbeat:Connect(function(dt)
+    -- Mise à jour flocons
+    local screenSize = ScreenGui.AbsoluteSize
+    local toRemove = {}
+
+    for i, sf in ipairs(snowflakes) do
+        sf.y = sf.y + (sf.speed * dt * 0.02)
+        local newX = sf.startX + (sf.drift * sf.elapsed * 0.005)
+        sf.elapsed = sf.elapsed + dt
+
+        -- Balancement sinusoïdal
+        local sway = math.sin(sf.elapsed * 0.8 + i) * 0.008
+
+        sf.label.Position = UDim2.new(
+            math.clamp(newX + sway, 0, 1), 0,
+            sf.y, 0
+        )
+
+        -- Rotation du flocon
+        sf.label.Rotation = sf.label.Rotation + sf.speed * dt * 2
+
+        if sf.y > 1.1 then
+            table.insert(toRemove, i)
+        end
+    end
+
+    -- Supprimer flocons hors écran et en recréer
+    for i = #toRemove, 1, -1 do
+        local idx = toRemove[i]
+        if snowflakes[idx] then
+            snowflakes[idx].label:Destroy()
+            table.remove(snowflakes, idx)
+        end
+    end
+
+    -- Spawner nouveaux flocons
+    lastSnowSpawn = lastSnowSpawn + dt
+    if lastSnowSpawn >= snowSpawnInterval and #snowflakes < 80 then
+        lastSnowSpawn = 0
+        CreateSnowflake()
+    end
+
+    -- Appliquer les effets actifs
+    if Config.GalaxyMode then UpdateGalaxyMode() end
+end)
+
+-- ══════════════════════════════════════
+--     WATCHERS (surveille config)
+-- ══════════════════════════════════════
+RunService.Heartbeat:Connect(function()
+    -- Synchroniser les effets avec la config actuelle
+    -- Les connexions individuelles sont gérées par les toggles
+end)
+
+-- Initialisation
+UpdateSpeedBoost()
+UpdateAntiRagdoll()
+UpdateSpinBot()
+UpdateUnwalk()
+UpdateAutoSteal()
+UpdateBatAimbot()
+UpdateSpeedWhileStealing()
+UpdateSpamBot()
+UpdateAutoMove()
+UpdateOptimizerXRay()
+UpdateGalaxySkyBright()
+
+print("╔══════════════════════════════╗")
+print("║  22S DUELS Loaded ✓          ║")
+print("║  Appuie INSERT pour toggle   ║")
+print("╚══════════════════════════════╝")
